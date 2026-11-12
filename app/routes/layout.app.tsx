@@ -3,6 +3,18 @@ import type { Route } from "./+types/layout.app";
 import { Sidebar } from "~/components/sidebar";
 import { DevUI } from "~/components/dev-ui";
 import { Toaster } from "sonner";
+// PROTOTYPE: Notification Feed placement (?variant=A|B|C)
+import {
+  VARIANTS,
+  useVariant,
+  useFeedPageOpen,
+  FeedProvider,
+  VariantAHeaderBell,
+  VariantBNavItem,
+  VariantCNavItem,
+  VariantCPage,
+} from "~/components/notification-feed-prototype/variants";
+import { PrototypeSwitcher } from "~/components/prototype-switcher";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
 import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
 import { eq, and, or, sql, desc } from "drizzle-orm";
@@ -226,17 +238,27 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     countries,
     isTeamAdmin: userIsTeamAdmin,
   } = loaderData;
+  const variant = useVariant();
+  const feedPageOpen = useFeedPageOpen();
+  const signedIn = !!currentUser;
 
   return (
+    <FeedProvider role={currentUser?.role ?? null} isTeamAdmin={userIsTeamAdmin}>
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         currentUser={currentUser}
         recentCourses={recentCourses}
         isTeamAdmin={userIsTeamAdmin}
+        headerAction={signedIn && variant === "A" ? <VariantAHeaderBell /> : null}
+        navExtra={
+          signedIn && variant === "B" ? <VariantBNavItem /> :
+          signedIn && variant === "C" ? <VariantCNavItem /> : null
+        }
       />
       <main className="flex-1 overflow-y-auto">
-        <Outlet />
+        {signedIn && variant === "C" && feedPageOpen ? <VariantCPage /> : <Outlet />}
       </main>
+      <PrototypeSwitcher variants={VARIANTS} current={variant} />
       <DevUI
         users={users}
         currentUser={currentUser}
@@ -246,5 +268,6 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       />
       <Toaster position="bottom-right" richColors closeButton />
     </div>
+    </FeedProvider>
   );
 }
